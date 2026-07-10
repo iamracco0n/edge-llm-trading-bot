@@ -1,0 +1,7 @@
+# Xavier NX AI 의존성 (Python 3.8, Jetson aarch64 기준)
+requests==2.32.4
+pyupbit==0.2.34
+yfinance==1.2.0
+python-telegram-bot==21.6
+pandas==2.0.3
+numpy==1.24.4

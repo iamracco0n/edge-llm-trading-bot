@@ -1,0 +1,25 @@
+# ==== 시크릿 (절대 커밋 금지) ====
+secrets/
+*.key
+*.pem
+.env
+.env.*
+
+# ==== 가상환경 / 의존성 ====
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# ==== 런타임 상태 / 개인 거래기록 ====
+crypto/position.json
+crypto/trade_log.json
+logs/
+*.log
+log.txt
+**/log.txt
+
+# ==== OS / 에디터 ====
+.DS_Store
+.idea/
+.vscode/
