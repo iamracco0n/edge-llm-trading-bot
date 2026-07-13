@@ -1,7 +1,7 @@
 import json
 import yfinance as yf
 
-from llm.llm_client import ask_llm
+from llm.llm_client import deep_analyze
 from news.news_api import get_news
 from news.news_api import get_news_sentiment
 
@@ -109,24 +109,35 @@ def analyze_stock(user_text):
     target_price = int(high_price * 0.95)
     stop_price = int(current_price * 0.93)
 
-    prompt = f"""
-    종목명 : {stock_name}
+    # ===== LLM 심층 분석: 지표·뉴스를 통째로 먹여서 추론시킴 =====
+    data_lines = [
+        f"현재가 : {current_price:,}원",
+        f"20일 이동평균(MA20) : {ma20:,}원",
+        f"60일 이동평균(MA60) : {ma60:,}원",
+        f"3개월 최고가 : {high_price:,}원",
+        f"RSI(14) : {rsi} ({rsi_state})",
+        f"차트 추세 : {trend}",
+        f"뉴스 분위기 : {news_sentiment}",
+        f"규칙기반 참고가 → 매수 {buy_price:,} / 목표 {target_price:,} / 손절 {stop_price:,}",
+        "최근 뉴스 제목 :",
+    ]
 
-    차트 추세 : {trend}
-    RSI 상태 : {rsi_state}
-    뉴스 분위기 : {news_sentiment}
+    if len(news_titles) == 0:
+        data_lines.append("  - (뉴스 없음)")
+    else:
+        for t in news_titles[:5]:
+            data_lines.append(f"  - {t}")
 
-    정확히 두 문장만 출력하라.
-
-    첫 번째 문장은 현재 상황 설명.
-    두 번째 문장은 투자 의견.
-
-    번호 금지.
-    줄바꿈 금지.
-    반드시 {action}, 보유, 관망 중 하나를 포함하라.
-    """
-
-    opinion = ask_llm(prompt)
+    opinion = deep_analyze(
+        title=stock_name,
+        data_lines=data_lines,
+        question=(
+            f"지금 이 종목을 매수하는 게 타당한지 분석해줘. "
+            f"추세({trend})와 RSI({rsi_state}), 뉴스({news_sentiment})가 "
+            f"서로 부합하는지, 이동평균 배열과 최고가 대비 위치도 함께 고려해서 "
+            f"결론은 {action}/보유/관망 중 하나로 내줘."
+        )
+    )
 
     answer = (
         f"📈 {stock_name}\n\n"
@@ -138,7 +149,7 @@ def analyze_stock(user_text):
         f"뉴스 분위기 : {news_sentiment}\n\n"
         f"최근 뉴스\n"
         f"{news_block}\n"
-        f"투자 의견 :\n"
+        f"🤖 AI 심층 분석\n"
         f"{opinion}"
     )
 
