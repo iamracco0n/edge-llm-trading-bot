@@ -93,6 +93,8 @@ def manage_trade():
 
         buy_time = positions[ticker]["buy_time"]
 
+        quantity = positions[ticker].get("quantity")
+
         current_price = get_current_price(
             ticker
         )
@@ -130,7 +132,8 @@ def manage_trade():
         if profit >= TAKE_PROFIT:
 
             sell_coin(
-                ticker
+                ticker,
+                quantity
             )
             
             save_trade(
@@ -173,7 +176,8 @@ def manage_trade():
         if profit <= STOP_LOSS:
 
             sell_coin(
-                ticker
+                ticker,
+                quantity
             )
             
             save_trade(
@@ -216,9 +220,10 @@ def manage_trade():
         if hold_hours >= MAX_HOLD_HOURS:
         
             if profit > 0.0025:
-        
+
                 sell_coin(
-                    ticker
+                    ticker,
+                    quantity
                 )
         
                 save_trade(
@@ -309,7 +314,8 @@ def manage_trade():
                 if count >= 5:
 
                     sell_coin(
-                        ticker
+                        ticker,
+                        quantity
                     )
 
                     save_trade(
@@ -424,10 +430,6 @@ def manage_trade():
             )
             continue
 
-        if score < 80:
-
-            continue
-
         data = analyze_coin(
             ticker
         )
@@ -470,16 +472,22 @@ def manage_trade():
             6
         )
 
-        buy_alarm(
-        
+        # 실제 매수 주문 (가상매매 모드에서는 시뮬레이션)
+        buy_coin(
             ticker,
-        
-            score,
-        
-            current_price,
-        
             BUY_AMOUNT
-        
+        )
+
+        buy_alarm(
+
+            ticker,
+
+            score,
+
+            current_price,
+
+            BUY_AMOUNT
+
         )
 
 

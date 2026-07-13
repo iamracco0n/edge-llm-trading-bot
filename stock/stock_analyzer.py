@@ -97,6 +97,14 @@ def analyze_stock(user_text):
     news_sentiment = get_news_sentiment(stock_name)
     news_titles = get_news(stock_name)
 
+    # 뉴스가 3개 미만이어도 안전하게 처리
+    if len(news_titles) == 0:
+        news_block = "• (최근 뉴스를 가져오지 못했습니다)\n"
+    else:
+        news_block = "".join(
+            f"• {title}\n" for title in news_titles[:3]
+        )
+
     buy_price = min(current_price, ma20)
     target_price = int(high_price * 0.95)
     stop_price = int(current_price * 0.93)
@@ -129,9 +137,7 @@ def analyze_stock(user_text):
         f"RSI : {rsi} ({rsi_state})\n"
         f"뉴스 분위기 : {news_sentiment}\n\n"
         f"최근 뉴스\n"
-        f"• {news_titles[0]}\n"
-        f"• {news_titles[1]}\n"
-        f"• {news_titles[2]}\n\n"
+        f"{news_block}\n"
         f"투자 의견 :\n"
         f"{opinion}"
     )

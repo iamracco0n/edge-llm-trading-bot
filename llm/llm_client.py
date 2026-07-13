@@ -26,11 +26,20 @@ def ask_llm(prompt):
         "max_tokens": 192
     }
 
-    response = requests.post(
-        LLM_URL,
-        json=payload
-    )
+    try:
 
-    answer = response.json()["choices"][0]["message"]["content"]
+        response = requests.post(
+            LLM_URL,
+            json=payload,
+            timeout=30
+        )
 
-    return answer
+        answer = response.json()["choices"][0]["message"]["content"]
+
+        return answer
+
+    except Exception as e:
+
+        print("LLM Error :", e)
+
+        return "LLM 서버에 연결하지 못했습니다."

@@ -79,7 +79,8 @@ def buy_coin(
 
 
 def sell_coin(
-    ticker
+    ticker,
+    quantity=None
 ):
 
     currency = ticker.replace(
@@ -87,16 +88,22 @@ def sell_coin(
         ""
     )
 
-    balance = upbit.get_balance(
-        currency
-    )
+    # 매도 수량 결정:
+    # - quantity 가 주어지면 해당 포지션 수량만 매도
+    # - 없으면 지갑 잔고 전량 (하위호환)
+    if quantity is None:
+
+        quantity = upbit.get_balance(
+            currency
+        )
 
     # =========================
     # 가상매도
     # =========================
     print(
         "[가상매도]",
-        ticker
+        ticker,
+        quantity
     )
 
     return {
@@ -109,22 +116,19 @@ def sell_coin(
     # 실거래 코드
     # =========================
     #
-    # if balance is None:
-    #
-    #     return None
-    #
-    # if float(balance) == 0:
+    # if quantity is None or float(quantity) == 0:
     #
     #     return None
     #
     # print(
     #     "매도 :",
-    #     ticker
+    #     ticker,
+    #     quantity
     # )
     #
     # return upbit.sell_market_order(
     #     ticker,
-    #     balance
+    #     quantity
     # )
 
 def get_my_coins():
