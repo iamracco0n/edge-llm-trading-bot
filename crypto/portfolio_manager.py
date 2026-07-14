@@ -9,8 +9,9 @@ sys.path.append(
 from crypto.upbit_api import get_current_price
 
 
+# v1.1.1: 활성 엔진이 HTF 추세추종으로 교체됨 → HTF 포지션을 조회
 POSITION_FILE = (
-    "/home/user/xavier_nx_ai/crypto/position.json"
+    "/home/user/xavier_nx_ai/crypto/position_htf.json"
 )
 
 
