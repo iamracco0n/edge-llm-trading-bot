@@ -3,7 +3,8 @@ import yfinance as yf
 
 from llm.llm_client import deep_analyze
 from news.news_api import get_news
-from news.news_api import get_news_sentiment
+from news.news_api import get_news_sentiment_llm
+from market.recommend_stock_llm import chart_features
 
 
 with open(
@@ -94,8 +95,11 @@ def analyze_stock(user_text):
         trend = "하락"
         action = "관망"
 
-    news_sentiment = get_news_sentiment(stock_name)
+    # 뉴스는 한 번만 가져와 재사용 (API 중복 호출 제거)
     news_titles = get_news(stock_name)
+
+    # 감성은 로컬 LLM이 제목을 직접 읽고 판정 (단어 카운팅 폐기)
+    news_sentiment = get_news_sentiment_llm(news_titles)
 
     # 뉴스가 3개 미만이어도 안전하게 처리
     if len(news_titles) == 0:
@@ -106,7 +110,11 @@ def analyze_stock(user_text):
         )
 
     buy_price = min(current_price, ma20)
-    target_price = int(high_price * 0.95)
+    # 목표가는 항상 현재가보다 위에 오도록 (고점 근처 버그 수정)
+    target_price = max(
+        int(high_price * 0.98),
+        int(current_price * 1.05)
+    )
     stop_price = int(current_price * 0.93)
 
     # ===== LLM 심층 분석: 지표·뉴스를 통째로 먹여서 추론시킴 =====
@@ -117,7 +125,8 @@ def analyze_stock(user_text):
         f"3개월 최고가 : {high_price:,}원",
         f"RSI(14) : {rsi} ({rsi_state})",
         f"차트 추세 : {trend}",
-        f"뉴스 분위기 : {news_sentiment}",
+        *chart_features(df),
+        f"뉴스 분위기(LLM 판정) : {news_sentiment}",
         f"규칙기반 참고가 → 매수 {buy_price:,} / 목표 {target_price:,} / 손절 {stop_price:,}",
         "최근 뉴스 제목 :",
     ]
@@ -146,7 +155,7 @@ def analyze_stock(user_text):
         f"목표가 : {target_price:,}원\n"
         f"손절가 : {stop_price:,}원\n"
         f"RSI : {rsi} ({rsi_state})\n"
-        f"뉴스 분위기 : {news_sentiment}\n\n"
+        f"뉴스 분위기(AI) : {news_sentiment}\n\n"
         f"최근 뉴스\n"
         f"{news_block}\n"
         f"🤖 AI 심층 분석\n"

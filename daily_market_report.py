@@ -2,6 +2,7 @@ from market.us_news import get_us_news
 from market.kr_news import get_kr_news
 from market.exchange_rate import get_usdkrw
 from market.recommend_stock import get_recommend_stocks
+from market.recommend_stock_llm import get_llm_recommendations
 
 from llm.llm_client import ask_llm
 
@@ -14,7 +15,12 @@ def create_report():
 
     usdkrw = get_usdkrw()
 
-    stocks = get_recommend_stocks()
+    # LLM 강화 추천(배치 전용, 느림) → 실패 시 키워드 방식 폴백
+    try:
+        stocks = get_llm_recommendations()
+    except Exception as e:
+        print("LLM 추천 실패, 키워드 폴백:", e)
+        stocks = get_recommend_stocks()
 
     # =====================
     # AI 코멘트
@@ -97,21 +103,39 @@ def create_report():
         "📈 오늘의 추천 종목\n\n"
     )
 
+    if not stocks:
+        report += (
+            "오늘은 추천 조건(기술점수 40+)을 만족하는 종목이 없습니다.\n"
+            "하락장에선 관망이 상책입니다.\n\n"
+        )
+
     for i, stock in enumerate(
         stocks
     ):
 
+        # LLM 판정 뱃지 (있으면)
+        badge = (
+            f"  [{stock['verdict']}]"
+            if stock.get("verdict") else ""
+        )
+
         report += (
 
-            f"{i+1}. {stock['name']}\n"
+            f"{i+1}. {stock['name']}{badge}\n"
 
             f"매수 : {stock['buy_price']:,}원\n"
 
             f"목표 : {stock['target_price']:,}원\n"
 
-            f"손절 : {stock['stop_price']:,}원\n\n"
+            f"손절 : {stock['stop_price']:,}원\n"
 
         )
+
+        # LLM 심층분석 (있으면)
+        if stock.get("analysis"):
+            report += f"\n🤖 {stock['analysis']}\n"
+
+        report += "\n"
 
     report += (
         "📝 AI 코멘트\n"
