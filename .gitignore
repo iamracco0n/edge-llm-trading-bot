@@ -23,3 +23,5 @@ log.txt
 .DS_Store
 .idea/
 .vscode/
+crypto/position_htf.json
+crypto/trade_log_htf.json
