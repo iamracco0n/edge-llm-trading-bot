@@ -12,7 +12,7 @@ import numpy as np
 import yfinance as yf
 
 from news.news_api import get_news
-from llm.llm_client import ask_llm
+from llm.llm_client import deep_analyze
 
 
 with open(
@@ -220,62 +220,19 @@ def build_data_lines(c, titles):
 
 
 # =====================================================
-# 분석 결과에서 판정(매수/보유/관망) 추출
+# deep_analyze 결과에서 결론(매수/보유/관망) 추출
 # =====================================================
 def extract_verdict(text):
-    # 분석은 첫 줄 "판정: 매수/보유/관망" 형식으로 시작한다.
-    # (구버전 "결론:" 도 호환) "순매수"의 매수 오인을 막으려 마커 뒤에서만 탐색.
+    # deep_analyze는 "④ 결론 : 매수/보유/관망 ..." 형식으로 끝난다
     if not text:
         return None
-    for marker in ("판정", "결론"):
-        if marker in text:
-            tail = text.split(marker, 1)[-1][:20]   # 마커 직후 짧은 구간만
-            best, best_idx = None, 999
-            for label in ("매수", "보유", "관망"):
-                i = tail.find(label)
-                if i != -1 and i < best_idx:
-                    best_idx, best = i, label
-            if best:
-                return best
-    return None
-
-
-# =====================================================
-# LLM 출력을 표시용으로 정리 (판정 줄 제거 + 3문장 컷)
-# =====================================================
-def clean_reason(text):
-    import re
-    if not text:
-        return ""
-    # 판정/결론 줄은 뱃지로 따로 보여주므로 본문에서 제거
-    lines = [
-        ln for ln in text.splitlines()
-        if ln.strip() and not ln.strip().startswith(("판정", "결론"))
-    ]
-    body = " ".join(lines).strip() or text.strip()
-    # 문장 3개까지만 (한국어 종결 . ! ? 기준)
-    parts = [p for p in re.split(r"(?<=[.!?])\s+", body) if p.strip()]
-    return " ".join(parts[:3])
-
-
-# =====================================================
-# 간결 분석 — 아침 추천용 (3~5문장, 한 문단)
-# =====================================================
-def analyze_concise(name, data_lines):
-    """아침 리포트는 짧아야 함 → 4항목 나열 대신 3~5문장 한 문단."""
-    data_block = "\n".join(data_lines)
-    prompt = (
-        f"[분석 대상] {name}\n\n"
-        f"[제공 데이터]\n{data_block}\n\n"
-        "[요청] 위 수치에 근거해(추측 금지) 이 종목을 평가하라.\n"
-        "출력 형식(반드시 지켜라):\n"
-        "첫 줄: '판정: 매수' 또는 '판정: 보유' 또는 '판정: 관망' 중 하나만.\n"
-        "다음 줄부터: 그렇게 본 이유를 데이터 수치를 근거로 3문장 이내로 서술.\n"
-        "주의: 뉴스를 오해하지 말 것(실적 '상회'·순매수는 호재다). "
-        "근거 없는 악재를 지어내지 말 것. 번호·항목 나열 금지, 자연스러운 문장으로."
-    )
-    # 판정을 맨 앞에 두므로 이유가 잘려도 판정은 살아있음. 온도 낮춰 편차 축소.
-    return ask_llm(prompt, max_tokens=220, temperature=0.2, timeout=360)
+    tail = text.split("결론", 1)[-1]     # 결론 이후에서만 탐색
+    best, best_idx = None, 999
+    for label in ("매수", "보유", "관망"):
+        i = tail.find(label)
+        if i != -1 and i < best_idx:
+            best_idx, best = i, label
+    return best
 
 
 # =====================================================
@@ -305,12 +262,21 @@ def get_llm_recommendations():
         c["stop_price"] = int(c["current"] * 0.93)
 
         try:
-            raw = analyze_concise(c["name"], build_data_lines(c, titles))
-            # 판정 뱃지는 원문에서 추출(실패 시 추세 폴백), 본문은 3문장으로 정리
-            c["verdict"] = extract_verdict(raw) or c["trend"]
-            c["analysis"] = clean_reason(raw)
+            analysis = deep_analyze(
+                title=c["name"],
+                data_lines=build_data_lines(c, titles),
+                question=(
+                    "이 종목을 오늘 매수 후보로 볼지 지표·차트흐름·뉴스를 "
+                    "근거로 분석하라. 특히 뉴스에 명백한 악재가 있으면 반드시 "
+                    "짚고 결론을 보수적으로 낮춰라. 핵심 이유와 리스크를 "
+                    "서술하고, ④ 결론은 매수/보유/관망 중 하나로 내려라."
+                )
+            )
+            c["analysis"] = analysis
+            # 결론(매수/보유/관망) 뱃지 — 실패 시 추세로 폴백
+            c["verdict"] = extract_verdict(analysis) or c["trend"]
         except Exception:
-            c["analysis"] = "(분석 생성 실패)"
+            c["analysis"] = "(심층분석 생성 실패)"
             c["verdict"] = None
 
     return finalists
