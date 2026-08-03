@@ -6,6 +6,8 @@ NVIDIA **Jetson Xavier NX** 한 대 위에서 **로컬 LLM(llama.cpp + Qwen2.5)*
 > 외부 LLM API(OpenAI 등) 없이, 모델 추론까지 전부 이 작은 보드 안에서 돌아갑니다.
 > 뉴스 수집·지표 계산·매매 판단·텔레그램 알림이 하나의 파이프라인으로 연결됩니다.
 
+🏭 **실전 배포(공장)** — 여기 올라간 매매 전략의 **백테스트·엣지 검증(연구실)은 → [llm-trading-backtest](https://github.com/iamracco0n/llm-trading-backtest)**. 저기서 "진짜 엣지 있나" 검증 → 여기서 라이브 실행.
+
 ---
 
 ## 목차
